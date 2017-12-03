@@ -1,7 +1,7 @@
 """
 Name: Backup Management
 Author: Ahren Bader-Jarvis
-Version: 1.0
+Version: 1.0.1
 Revision Date: 2017-12-02
 Description: This script is designed to manage daily backups using a set schedule.
              It will keep daily backups from the last 2 weeks, after that, 1 for
@@ -11,6 +11,7 @@ Assumptions: The backup directory (defined in backup_dir) receives 1 backup dail
 """
 
 import os
+import calendar
 import datetime
 
 backup_dir = "E:\Backup\Minecraft Server\\"
@@ -21,14 +22,23 @@ do_deletion = False
 files_to_delete = []
 files_to_save = []
 today = datetime.date.today()
+# today = datetime.date(2017, 12, 31)
 two_weeks_ago = today - datetime.timedelta(14)
-two_months_ago = today - datetime.timedelta(60)
+if today.month > 2:
+    two_months_ago = datetime.date(today.year, today.month - 2, 1)
+else:
+    two_months_ago = datetime.date(today.year - 1, 12 + (today.month - 2), 1)
 one_week = datetime.timedelta(7)
 one_month = datetime.timedelta(30)
 
 
 def date_from_filename(fn):
     return datetime.datetime.strptime(fn[-14:-4], date_format).date()
+
+
+def get_last_day(dt):
+    last_day = calendar.monthrange(dt.year, dt.month)[1]
+    return datetime.date(dt.year, dt.month, last_day)
 
 
 for filename in os.listdir(backup_dir):
@@ -48,7 +58,7 @@ files_to_delete.sort(reverse=True)  # sort
 newer_date = two_weeks_ago
 
 file_index = 0
-while newer_date > two_months_ago:
+while newer_date > today - datetime.timedelta(60):
     # Generate the week boundaries
     older_date = newer_date - one_week
 
@@ -68,12 +78,12 @@ while newer_date > two_months_ago:
     newer_date = older_date
 
 # ---MONTH---
-# Loop through dates from 2 weeks to the earliest backup decrementing by month
-newer_date = two_months_ago
+# Loop through dates from 2 months ago to the earliest backup decrementing by month
+newer_date = get_last_day(two_months_ago)  # end of the month
 while len(files_to_delete) > 0 and newer_date >= date_from_filename(sorted(files_to_delete)[0]):
     # print(newer_date, ",", date_from_filename(sorted(files_to_delete)[0]))
     # Generate the month boundaries
-    older_date = newer_date - one_month
+    older_date = datetime.date(newer_date.year, newer_date.month, 1)
 
     # Get list of files that are within those boundaries
     range_files = []
@@ -88,7 +98,7 @@ while len(files_to_delete) > 0 and newer_date >= date_from_filename(sorted(files
         files_to_delete.pop(range_files[0])
         file_index -= 1
 
-    newer_date = older_date
+    newer_date = get_last_day(older_date - one_month)
 
 # Delete all files remaining in the deletion scope
 print(today, " Save (", len(files_to_save), "): ", files_to_save, sep='')
