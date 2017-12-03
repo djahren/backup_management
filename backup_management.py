@@ -11,6 +11,7 @@ Assumptions: The backup directory (defined in backup_dir) receives 1 backup dail
 """
 
 import os
+import re
 import calendar
 import datetime
 
@@ -22,7 +23,6 @@ do_deletion = False
 files_to_delete = []
 files_to_save = []
 today = datetime.date.today()
-# today = datetime.date(2017, 12, 31)
 two_weeks_ago = today - datetime.timedelta(14)
 if today.month > 2:
     two_months_ago = datetime.date(today.year, today.month - 2, 1)
@@ -33,7 +33,11 @@ one_month = datetime.timedelta(30)
 
 
 def date_from_filename(fn):
-    return datetime.datetime.strptime(fn[-14:-4], date_format).date()
+    match = re.search(r"(\d{4}-\d{2}-\d{2})", fn)
+    if match:
+        return datetime.datetime.strptime(match.group(1), date_format).date()
+    else:
+        return None
 
 
 def get_last_day(dt):
@@ -43,7 +47,7 @@ def get_last_day(dt):
 
 for filename in os.listdir(backup_dir):
     # Get a list of all .tgz files in directory
-    if filename.endswith(".tgz"):
+    if filename.endswith(".tgz") and not(date_from_filename(filename) is None):
         d = date_from_filename(filename)
         if today >= d > two_weeks_ago:
             # If the file is within the last two weeks ignore it
@@ -51,6 +55,7 @@ for filename in os.listdir(backup_dir):
         else:
             # Else add it to the files_to_delete list
             files_to_delete.append(filename)
+
 files_to_delete.sort(reverse=True)  # sort
 
 # ---WEEK---
