@@ -28,8 +28,6 @@ if today.month > 2:
     two_months_ago = datetime.date(today.year, today.month - 2, 1)
 else:
     two_months_ago = datetime.date(today.year - 1, 12 + (today.month - 2), 1)
-one_week = datetime.timedelta(7)
-one_month = datetime.timedelta(30)
 
 
 def date_from_filename(fn):
@@ -47,7 +45,7 @@ def get_last_day(dt):
 
 for filename in os.listdir(backup_dir):
     # Get a list of all .tgz files in directory
-    if filename.endswith(".tgz") and not(date_from_filename(filename) is None):
+    if filename.endswith(".tgz") and not (date_from_filename(filename) is None):
         d = date_from_filename(filename)
         if today >= d > two_weeks_ago:
             # If the file is within the last two weeks ignore it
@@ -61,11 +59,10 @@ files_to_delete.sort(reverse=True)  # sort
 # ---WEEK---
 # Loop through dates from 2 weeks to 2 months ago decrementing by week
 newer_date = two_weeks_ago
-
 file_index = 0
-while newer_date > today - datetime.timedelta(60):
+while newer_date > today - datetime.timedelta(60):  # while newer_date is greater than 60 days ago
     # Generate the week boundaries
-    older_date = newer_date - one_week
+    older_date = newer_date - datetime.timedelta(7)  # 1 week before newer date
 
     # Get list of files that are within those boundaries
     range_files = []
@@ -73,7 +70,6 @@ while newer_date > today - datetime.timedelta(60):
         range_files.append(file_index)
         file_index += 1
 
-    # print(newer_date, older_date, range_files)
     # Remove the most recent one from the deletion scope
     if len(range_files) > 0:
         files_to_save.append(files_to_delete[range_files[0]])
@@ -86,24 +82,24 @@ while newer_date > today - datetime.timedelta(60):
 # Loop through dates from 2 months ago to the earliest backup decrementing by month
 newer_date = get_last_day(two_months_ago)  # end of the month
 while len(files_to_delete) > 0 and newer_date >= date_from_filename(sorted(files_to_delete)[0]):
-    # print(newer_date, ",", date_from_filename(sorted(files_to_delete)[0]))
     # Generate the month boundaries
     older_date = datetime.date(newer_date.year, newer_date.month, 1)
 
     # Get list of files that are within those boundaries
     range_files = []
-    while len(files_to_delete) != file_index and date_from_filename(files_to_delete[file_index]) > older_date:
+    while len(files_to_delete) != file_index and \
+            date_from_filename(files_to_delete[file_index]) >= older_date:
+        cur_file = date_from_filename(files_to_delete[file_index])
         range_files.append(file_index)
         file_index += 1
 
-    # print(newer_date, older_date, range_files)
     # Remove the most recent one from the deletion scope
     if len(range_files) > 0:
         files_to_save.append(files_to_delete[range_files[0]])
         files_to_delete.pop(range_files[0])
         file_index -= 1
 
-    newer_date = get_last_day(older_date - one_month)
+    newer_date = older_date - datetime.timedelta(1)  # the 1st of the current month minus 1 day
 
 # Delete all files remaining in the deletion scope
 print(today, " Save (", len(files_to_save), "): ", files_to_save, sep='')
